@@ -118,7 +118,7 @@ const doctors = [
     rating: 4.8,
     reviews: 208,
     photo:
-      "https://images.pexels.com/photos/5888168/pexels-photo-5888168.jpeg?auto=compress&cs=tinysrgb&w=1000",
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=1000&fit=crop&auto=format",
     experience: 9,
     consultType: "both",
     fee: 699,
@@ -776,10 +776,9 @@ app.post("/api/appointments/:id/otp", requireAuth, async (req, res) => {
   await persist()
 
   res.json({
-    message: "Enter the verification code to confirm your appointment.",
-    expiresAt,
-    ...(isProduction ? {} : { developmentCode: code }),
-  })
+  message: "Enter the verification code to confirm your appointment.",
+  expiresAt,
+  developmentCode: code,
 })
 
 app.post("/api/appointments/:id/verify-otp", requireAuth, async (req, res) => {
