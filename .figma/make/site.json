@@ -1,0 +1,10 @@
+{
+  "description": "Streamline healthcare scheduling by enabling patients to book, reschedule, or cancel appointments while clinics manage records and reduce wait times.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

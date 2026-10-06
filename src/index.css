@@ -1,0 +1,211 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap');
+
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+}
+
+:root {
+  --background: #F2F4F8;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --primary: #0A6375;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EEF3F6;
+  --muted: #E5EBF0;
+  --muted-foreground: #6B7280;
+  --accent: #12A882;
+  --accent-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --ring: #0A6375;
+  --radius: 12px;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #1A3A4A;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Phone shell ───────────────────────────────────────────────────────────── */
+
+.phone-shell {
+  width: 100%;
+  max-width: 390px;
+  height: 100vh;
+  max-height: 844px;
+  background: var(--background);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 430px) and (min-height: 860px) {
+  body {
+    background: linear-gradient(160deg, #1A3A4A 0%, #0A2030 100%);
+  }
+  .phone-shell {
+    border-radius: 50px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 30px 80px rgba(0,0,0,0.5),
+      inset 0 0 0 2px rgba(255,255,255,0.05);
+  }
+}
+
+/* ── Typography ────────────────────────────────────────────────────────────── */
+
+.font-display, h1, h2, h3 {
+  font-family: 'Fraunces', serif;
+}
+
+.font-mono-data {
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── Scrollbars ────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
+*:hover::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+
+/* Hide scrollbar but keep scroll functionality */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.overflow-y-auto:hover {
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+
+/* ── Transitions ───────────────────────────────────────────────────────────── */
+
+button {
+  transition: all 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+.active\:scale-98:active {
+  transform: scale(0.98);
+}
+
+/* ── Safe area ─────────────────────────────────────────────────────────────── */
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* ── Credit card 3D flip ───────────────────────────────────────────────────── */
+
+.card-perspective {
+  perspective: 1200px;
+  height: 180px;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card-front {
+  /* front is default (0deg rotation) */
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ── Slide-up animation for modals ─────────────────────────────────────────── */
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Mobile touch improvements ─────────────────────────────────────────────── */
+
+input, select, textarea {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px; /* prevent zoom on iOS */
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+}
