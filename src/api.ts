@@ -197,7 +197,7 @@ export const api = {
       }),
 
     requestOtp: (id: number) =>
-      request<{ message: string; expiresAt: string; developmentCode?: string }>(`/appointments/${id}/otp`, { method: 'POST' }),
+      request<{ message: string; expiresAt: string; demoMode: boolean; developmentCode?: string }>(`/appointments/${id}/otp`, { method: 'POST' }),
 
     verifyOtp: (id: number, code: string) =>
       request<Appointment>(`/appointments/${id}/verify-otp`, {

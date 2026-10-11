@@ -28,6 +28,9 @@ const dataDirectory = path.resolve(
 const dataFile = path.join(dataDirectory, "careconnect.json")
 
 const isProduction = process.env.NODE_ENV === "production"
+const isDemoMode =
+  process.env.DEMO_MODE === "true" ||
+  (!isProduction && process.env.DEMO_MODE !== "false")
 
 if (isProduction && !process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET must be configured before running in production.")
@@ -118,7 +121,7 @@ const doctors = [
     rating: 4.8,
     reviews: 208,
     photo:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=1000&fit=crop&auto=format",
+      "https://images.pexels.com/photos/5888168/pexels-photo-5888168.jpeg?auto=compress&cs=tinysrgb&w=1000",
     experience: 9,
     consultType: "both",
     fee: 699,
@@ -776,9 +779,11 @@ app.post("/api/appointments/:id/otp", requireAuth, async (req, res) => {
   await persist()
 
   res.json({
-  message: "Enter the verification code to confirm your appointment.",
-  expiresAt,
-  developmentCode: code,
+    message: "Enter the verification code to confirm your appointment.",
+    expiresAt,
+    demoMode: isDemoMode,
+    ...(!isProduction ? { developmentCode: code } : {}),
+  })
 })
 
 app.post("/api/appointments/:id/verify-otp", requireAuth, async (req, res) => {
@@ -800,15 +805,15 @@ app.post("/api/appointments/:id/verify-otp", requireAuth, async (req, res) => {
   if (Date.now() > Date.parse(challenge.expiresAt))
     return fail(res, 410, "Your code has expired. Request a new one.")
 
-  if (challenge.attempts >= 5)
+  if (!isDemoMode && challenge.attempts >= 5)
     return fail(res, 429, "Too many incorrect codes. Request a new one.")
 
   if (
     typeof code !== "string" ||
     !/^\d{6}$/.test(code) ||
-    code !== challenge.code
+    (!isDemoMode && code !== challenge.code)
   ) {
-    challenge.attempts += 1
+    if (!isDemoMode) challenge.attempts += 1
 
     await persist()
 

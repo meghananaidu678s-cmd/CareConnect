@@ -70,6 +70,7 @@ export function PaymentScreen({ params }: PaymentScreenProps) {
   const [error, setError] = useState("")
   const [verification, setVerification] = useState<{
     appointmentId: number
+    demoMode: boolean
     developmentCode?: string
   } | null>(null)
   const [otp, setOtp] = useState("")
@@ -123,6 +124,7 @@ export function PaymentScreen({ params }: PaymentScreenProps) {
       const otpResponse = await api.appointments.requestOtp(appointment.id)
       setVerification({
         appointmentId: appointment.id,
+        demoMode: otpResponse.demoMode,
         developmentCode: otpResponse.developmentCode,
       })
       setSuccess({
@@ -179,8 +181,9 @@ export function PaymentScreen({ params }: PaymentScreenProps) {
             Verify your appointment
           </h1>
           <p className="text-sm text-gray-500 mt-1 mb-6">
-            We sent a 6-digit code to your registered phone before confirming
-            the booking.
+            {verification.demoMode
+              ? "Demo mode: enter any 6 digits to confirm your booking. No SMS is sent."
+              : "Enter the 6-digit verification code to confirm your booking."}
           </p>
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 mb-4">
@@ -201,8 +204,7 @@ export function PaymentScreen({ params }: PaymentScreenProps) {
             />
             {verification.developmentCode && (
               <p className="text-xs text-center text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
-                Development code:{" "}
-                <strong>{verification.developmentCode}</strong>
+                Development code: <strong>{verification.developmentCode}</strong>
               </p>
             )}
             <button
