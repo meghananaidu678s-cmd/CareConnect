@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto"
 
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
+import { readFile } from "node:fs/promises"
 
 import path from "node:path"
 
@@ -12,9 +12,23 @@ import express from "express"
 
 import jwt from "jsonwebtoken"
 
+import { MongoClient } from "mongodb"
+
 const app = express()
 
 const port = Number(process.env.API_PORT || 3001)
+
+const mongoUri = process.env.MONGODB_URI
+
+const mongoDatabaseName = process.env.MONGODB_DB || "careconnect"
+
+if (!mongoUri) {
+  throw new Error("MONGODB_URI must be configured before starting the API.")
+}
+
+const mongoClient = new MongoClient(mongoUri)
+
+let stateCollection
 
 const jwtSecret =
   process.env.JWT_SECRET ||
@@ -28,6 +42,7 @@ const dataDirectory = path.resolve(
 const dataFile = path.join(dataDirectory, "careconnect.json")
 
 const isProduction = process.env.NODE_ENV === "production"
+
 const isDemoMode =
   process.env.DEMO_MODE === "true" ||
   (!isProduction && process.env.DEMO_MODE !== "false")
@@ -39,115 +54,199 @@ if (isProduction && !process.env.JWT_SECRET) {
 const doctors = [
   {
     id: 1,
+
     name: "Dr. Meera Nair",
+
     specialty: "Cardiology",
+
     hospital: "Apollo Heart Institute, Chennai",
+
     rating: 4.9,
+
     reviews: 284,
+
     photo:
       "https://images.pexels.com/photos/36665076/pexels-photo-36665076.jpeg?auto=compress&cs=tinysrgb&w=1000",
+
     experience: 12,
+
     consultType: "both",
+
     fee: 1200,
+
     bio: "Cardiologist focused on preventive heart care and helping patients build healthier lives.",
+
     languages: ["English", "Hindi", "Malayalam"],
+
     education: "DM Cardiology, AIIMS New Delhi",
+
     nextAvailable: "Today, 2:30 PM IST",
+
     available: ["Today", "Tomorrow"],
   },
 
   {
     id: 2,
+
     name: "Dr. Arjun Sharma",
+
     specialty: "General Practice",
+
     hospital: "CareConnect Family Clinic, Mumbai",
+
     rating: 4.8,
+
     reviews: 196,
+
     photo:
       "https://images.pexels.com/photos/19438563/pexels-photo-19438563/free-photo-of-doctor.jpeg?auto=compress&cs=tinysrgb&w=1000",
+
     experience: 15,
+
     consultType: "both",
+
     fee: 499,
+
     bio: "Family physician providing thoughtful, comprehensive care for adults and families.",
+
     languages: ["English", "Hindi", "Punjabi"],
+
     education: "MBBS, MD, AIIMS New Delhi",
+
     nextAvailable: "Today, 3:00 PM IST",
+
     available: ["Today", "Tomorrow"],
   },
 
   {
     id: 3,
+
     name: "Dr. Aisha Khan",
+
     specialty: "Neurology",
+
     hospital: "Fortis Memorial Research Institute, Gurugram",
+
     rating: 4.9,
+
     reviews: 172,
+
     photo:
       "https://images.pexels.com/photos/5738735/pexels-photo-5738735.jpeg?auto=compress&cs=tinysrgb&w=1000",
+
     experience: 10,
+
     consultType: "virtual",
+
     fee: 1499,
+
     bio: "Neurologist specializing in migraine care, sleep health, and evidence-based treatment plans.",
+
     languages: ["English", "Hindi", "Urdu"],
+
     education: "DM Neurology, NIMHANS Bengaluru",
+
     nextAvailable: "Tomorrow, 9:00 AM IST",
+
     available: ["Tomorrow", "Friday"],
   },
 
   {
     id: 4,
+
     name: "Dr. Kavita Iyer",
+
     specialty: "Orthopedics",
+
     hospital: "Manipal Hospitals, Bengaluru",
+
     rating: 4.7,
+
     reviews: 143,
+
     photo:
       "https://images.pexels.com/photos/10695742/pexels-photo-10695742.jpeg?auto=compress&cs=tinysrgb&w=1000",
+
     experience: 14,
+
     consultType: "in-person",
+
     fee: 899,
+
     bio: "Orthopedic specialist helping patients recover mobility through personalized treatment and rehabilitation.",
+
     languages: ["English", "Hindi", "Tamil"],
+
     education: "MS Orthopaedics, CMC Vellore",
+
     nextAvailable: "Wednesday, 10:00 AM IST",
+
     available: ["Wednesday", "Thursday"],
   },
 
   {
     id: 5,
+
     name: "Dr. Rohan Mehta",
+
     specialty: "Dermatology",
+
     hospital: "Apollo Hospitals, Ahmedabad",
+
     rating: 4.8,
+
     reviews: 208,
+
     photo:
       "https://images.pexels.com/photos/5888168/pexels-photo-5888168.jpeg?auto=compress&cs=tinysrgb&w=1000",
+
     experience: 9,
+
     consultType: "both",
+
     fee: 699,
+
     bio: "Dermatologist offering compassionate care for skin health, routine screenings, and common conditions.",
+
     languages: ["English", "Hindi", "Gujarati"],
+
     education: "MD Dermatology, KEM Hospital Mumbai",
+
     nextAvailable: "Thursday, 11:30 AM IST",
+
     available: ["Thursday", "Friday"],
   },
 
   {
     id: 6,
+
     name: "Dr. Priya Menon",
+
     specialty: "Psychiatry",
+
     hospital: "NIMHANS Centre for Wellbeing, Bengaluru",
+
     rating: 4.9,
+
     reviews: 131,
+
     photo:
       "https://images.unsplash.com/photo-1659353888906-adb3e0041693?w=1000&fit=crop&auto=format",
+
     experience: 11,
+
     consultType: "virtual",
+
     fee: 1299,
+
     bio: "Psychiatrist supporting adults with a collaborative, patient-centered approach to mental wellness.",
+
     languages: ["English", "Hindi", "Malayalam"],
+
     education: "MD Psychiatry, NIMHANS Bengaluru",
+
     nextAvailable: "Friday, 1:00 PM IST",
+
     available: ["Friday", "Monday"],
   },
 ]
@@ -155,13 +254,21 @@ const doctors = [
 const sampleRecords = {
   vitals: {
     bloodPressure: "118/76",
+
     heartRate: 72,
+
     bloodGlucose: 92,
+
     bmi: 22.4,
+
     cholesterol: 168,
+
     oxygenSat: 98,
+
     weight: "68 kg",
+
     height: "175 cm",
+
     updatedAt: new Date().toISOString().slice(0, 10),
   },
 
@@ -183,24 +290,37 @@ const eventClients = new Map()
 function newDatabase() {
   return {
     users: [],
+
     appointments: [],
+
     payments: [],
+
     messages: [],
+
     notifications: [],
+
     otpChallenges: [],
   }
 }
 
 async function persist() {
-  saveQueue = saveQueue.then(async () => {
-    await mkdir(dataDirectory, { recursive: true })
+  const saveState = async () => {
+    if (!stateCollection) {
+      throw new Error(
+        "MongoDB is not connected; application state was not saved.",
+      )
+    }
 
-    const temporaryFile = `${dataFile}.${process.pid}.tmp`
+    await stateCollection.replaceOne(
+      { _id: "application-state" },
 
-    await writeFile(temporaryFile, JSON.stringify(database, null, 2), "utf8")
+      { _id: "application-state", ...database },
 
-    await rename(temporaryFile, dataFile)
-  })
+      { upsert: true },
+    )
+  }
+
+  saveQueue = saveQueue.then(saveState, saveState)
 
   return saveQueue
 }
@@ -231,9 +351,13 @@ function addNotification(userId, type, title, message) {
 
     time: now.toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
+
       month: "short",
+
       day: "numeric",
+
       hour: "numeric",
+
       minute: "2-digit",
     }),
 
@@ -308,6 +432,7 @@ function userAppointments(userId) {
 
     .map(({ userId: _userId, otpCode: _otpCode, ...appointment }) => ({
       ...appointment,
+
       photo: doctors.find((doctor) => doctor.id === appointment.doctorId).photo,
     }))
 }
@@ -370,48 +495,72 @@ function cardBrand(digits) {
   return "Card"
 }
 
-await mkdir(dataDirectory, { recursive: true })
+async function initializeDatabase() {
+  await mongoClient.connect()
 
-try {
-  database = JSON.parse(await readFile(dataFile, "utf8"))
+  stateCollection = mongoClient
+
+    .db(mongoDatabaseName)
+
+    .collection("application_state")
+
+  const savedState = await stateCollection.findOne({
+    _id: "application-state",
+  })
+
+  let shouldPersist = !savedState
+
+  if (savedState) {
+    const { _id: _savedId, ...savedDatabase } = savedState
+
+    database = { ...newDatabase(), ...savedDatabase }
+  } else {
+    try {
+      const legacyData = JSON.parse(await readFile(dataFile, "utf8"))
+
+      database = { ...newDatabase(), ...legacyData }
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error
+
+      database = newDatabase()
+    }
+  }
 
   for (const key of Object.keys(newDatabase())) {
     if (!Array.isArray(database[key])) database[key] = []
   }
-} catch (error) {
-  if (error.code !== "ENOENT") throw error
 
-  database = newDatabase()
-}
+  if (!database.users.some((user) => user.email === "demo@careconnect.app")) {
+    database.users.push({
+      id: 1,
 
-if (!database.users.some((user) => user.email === "demo@careconnect.app")) {
-  database.users.push({
-    id: 1,
+      name: "Alex Morgan",
 
-    name: "Alex Morgan",
+      email: "demo@careconnect.app",
 
-    email: "demo@careconnect.app",
+      passwordHash: await bcrypt.hash("demo1234", 10),
 
-    passwordHash: await bcrypt.hash("demo1234", 10),
+      phone: "",
 
-    phone: "",
+      dob: "",
 
-    dob: "",
+      bloodType: "O+",
 
-    bloodType: "O+",
+      patientId: "CC-100001",
 
-    patientId: "CC-100001",
+      gender: "",
 
-    gender: "",
+      address: "",
 
-    address: "",
+      emergencyContact: "",
 
-    emergencyContact: "",
+      createdAt: new Date().toISOString(),
+    })
 
-    createdAt: new Date().toISOString(),
-  })
+    shouldPersist = true
+  }
 
-  await persist()
+  if (shouldPersist) await persist()
 }
 
 app.disable("x-powered-by")
@@ -424,15 +573,24 @@ app.use((req, res, next) => {
   next()
 })
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }))
+app.get("/api/health", async (_req, res) => {
+  await mongoClient.db(mongoDatabaseName).command({ ping: 1 })
+
+  res.json({ status: "ok", database: "connected" })
+})
 
 app.post("/api/auth/register", async (req, res) => {
   const {
     name,
+
     email,
+
     password,
+
     phone = "",
+
     dob = "",
+
     gender = "",
   } = req.body || {}
 
@@ -556,10 +714,15 @@ app.get("/api/appointments", requireAuth, (req, res) =>
 app.post("/api/appointments", requireAuth, async (req, res) => {
   const {
     doctorId,
+
     date,
+
     time,
+
     type,
+
     notes = "",
+
     paymentId = "",
   } = req.body || {}
 
@@ -580,14 +743,18 @@ app.post("/api/appointments", requireAuth, async (req, res) => {
   )
     return fail(
       res,
+
       400,
+
       "This visit type is not available for the selected doctor.",
     )
 
   if (typeof notes !== "string" || notes.length > 1000)
     return fail(
       res,
+
       400,
+
       "Appointment notes must be 1,000 characters or fewer.",
     )
 
@@ -602,7 +769,9 @@ app.post("/api/appointments", requireAuth, async (req, res) => {
   )
     return fail(
       res,
+
       409,
+
       "This time was just booked. Please choose another time.",
     )
 
@@ -618,7 +787,9 @@ app.post("/api/appointments", requireAuth, async (req, res) => {
   if (paymentId && !payment)
     return fail(
       res,
+
       400,
+
       "The payment could not be verified. Please try again.",
     )
 
@@ -661,7 +832,9 @@ app.post("/api/appointments", requireAuth, async (req, res) => {
   await persist()
 
   res
+
     .status(201)
+
     .json(
       userAppointments(req.userId).find((item) => item.id === appointment.id),
     )
@@ -686,8 +859,11 @@ app.put("/api/appointments/:id/cancel", requireAuth, async (req, res) => {
 
   addNotification(
     req.userId,
+
     "cancelled",
+
     "Appointment cancelled",
+
     `Your appointment with ${appointment.doctor} on ${appointment.date} was cancelled.`,
   )
 
@@ -695,6 +871,7 @@ app.put("/api/appointments/:id/cancel", requireAuth, async (req, res) => {
 
   sendEvent(req.userId, {
     type: "appointment.updated",
+
     appointmentId: appointment.id,
   })
 
@@ -742,6 +919,7 @@ app.put("/api/appointments/:id/reschedule", requireAuth, async (req, res) => {
 
   sendEvent(req.userId, {
     type: "appointment.updated",
+
     appointmentId: appointment.id,
   })
 
@@ -770,9 +948,13 @@ app.post("/api/appointments/:id/otp", requireAuth, async (req, res) => {
 
   database.otpChallenges.push({
     appointmentId: appointment.id,
+
     userId: req.userId,
+
     code,
+
     expiresAt,
+
     attempts: 0,
   })
 
@@ -780,8 +962,11 @@ app.post("/api/appointments/:id/otp", requireAuth, async (req, res) => {
 
   res.json({
     message: "Enter the verification code to confirm your appointment.",
+
     expiresAt,
+
     demoMode: isDemoMode,
+
     ...(!isProduction ? { developmentCode: code } : {}),
   })
 })
@@ -830,8 +1015,11 @@ app.post("/api/appointments/:id/verify-otp", requireAuth, async (req, res) => {
 
   addNotification(
     req.userId,
+
     "confirmed",
+
     "Appointment confirmed",
+
     `Your appointment with ${appointment.doctor} on ${appointment.date} is confirmed.`,
   )
 
@@ -839,6 +1027,7 @@ app.post("/api/appointments/:id/verify-otp", requireAuth, async (req, res) => {
 
   sendEvent(req.userId, {
     type: "appointment.updated",
+
     appointmentId: appointment.id,
   })
 
@@ -850,11 +1039,17 @@ app.post("/api/appointments/:id/verify-otp", requireAuth, async (req, res) => {
 app.post("/api/payments/process", requireAuth, async (req, res) => {
   const {
     cardNumber,
+
     cardName,
+
     expiry,
+
     cvv,
+
     amount,
+
     doctorId,
+
     appointmentType,
   } = req.body || {}
 
@@ -871,7 +1066,9 @@ app.post("/api/payments/process", requireAuth, async (req, res) => {
   if (!isValidCardNumber(digits))
     return fail(
       res,
+
       400,
+
       "Enter a valid card number (test card: 4242 4242 4242 4242).",
     )
 
@@ -905,7 +1102,9 @@ app.post("/api/payments/process", requireAuth, async (req, res) => {
   if (Number(amount) !== expectedAmount)
     return fail(
       res,
+
       400,
+
       "The payment amount does not match the consultation fee.",
     )
 
@@ -945,14 +1144,18 @@ app.post("/api/payments/process", requireAuth, async (req, res) => {
 app.get("/api/payments", requireAuth, (req, res) => {
   res.json(
     database.payments
+
       .filter((payment) => payment.userId === req.userId)
+
       .map(({ userId: _userId, ...payment }) => payment),
   )
 })
 
 app.get("/api/records", requireAuth, (req, res) => {
   const visits = userAppointments(req.userId)
+
     .filter((appointment) => appointment.status === "completed")
+
     .map((appointment) => ({
       id: String(appointment.id),
 
@@ -978,6 +1181,7 @@ app.get("/api/messages", requireAuth, (req, res) => {
 
   const threads = userThreads.map(({ userId: _userId, ...thread }) => ({
     ...thread,
+
     photo: doctors.find((doctor) => doctor.id === thread.doctorId).photo,
   }))
 
@@ -1019,11 +1223,17 @@ app.post("/api/messages/send", requireAuth, async (req, res) => {
   if (!thread) {
     thread = {
       userId: req.userId,
+
       threadId: `${req.userId}-${doctor.id}`,
+
       doctorId: doctor.id,
+
       doctorName: doctor.name,
+
       photo: doctor.photo,
+
       unread: 0,
+
       messages: [],
     }
 
@@ -1041,7 +1251,9 @@ app.post("/api/messages/send", requireAuth, async (req, res) => {
 
     time: now.toLocaleTimeString("en-IN", {
       timeZone: "Asia/Kolkata",
+
       hour: "numeric",
+
       minute: "2-digit",
     }),
 
@@ -1058,7 +1270,9 @@ app.post("/api/messages/send", requireAuth, async (req, res) => {
 app.get("/api/notifications", requireAuth, (req, res) => {
   res.json(
     database.notifications
+
       .filter((notification) => notification.userId === req.userId)
+
       .map(({ userId: _userId, ...notification }) => notification),
   )
 })
@@ -1090,7 +1304,9 @@ app.put("/api/notifications/:id/read", requireAuth, async (req, res) => {
 app.get("/api/events", requireEventAuth, (req, res) => {
   res.set({
     "Content-Type": "text/event-stream",
+
     "Cache-Control": "no-cache",
+
     Connection: "keep-alive",
   })
 
@@ -1116,7 +1332,9 @@ app.use("/api", (_req, res) => fail(res, 404, "API endpoint not found."))
 if (isProduction) {
   const distDirectory = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
+
     "..",
+
     "dist",
   )
 
@@ -1127,8 +1345,12 @@ if (isProduction) {
   )
 }
 
+await initializeDatabase()
+
 app.listen(port, () => {
   console.log(`CareConnect API listening on http://localhost:${port}`)
+
+  console.log(`Connected to MongoDB database "${mongoDatabaseName}".`)
 
   if (!isProduction)
     console.log("Demo sign-in: demo@careconnect.app / demo1234")
